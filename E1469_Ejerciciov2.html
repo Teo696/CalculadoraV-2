@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Tablas de Multiplicar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a more playful feel */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right top, #a8dadc, #457b9d); /* Blue-green gradient */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .calculator-container {
+            background-color: #f1faee; /* Light cream */
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .question-area {
+            font-size: 2.5rem; /* Larger font for questions */
+            font-weight: bold;
+            color: #1d3557; /* Dark blue */
+            margin-bottom: 15px;
+        }
+        .input-field {
+            padding: 12px 20px;
+            border: 2px solid #a8dadc;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            text-align: center;
+            width: calc(100% - 40px); /* Adjust for padding */
+            max-width: 200px;
+            margin: 0 auto;
+            color: #1d3557;
+        }
+        .action-button {
+            background-color: #457b9d; /* Medium blue */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        .action-button:hover {
+            background-color: #1d3557; /* Darker blue */
+            transform: translateY(-2px);
+        }
+        .action-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .feedback-message {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-top: 10px;
+            min-height: 30px; /* To prevent layout shift */
+        }
+        .feedback-correct {
+            color: #2a9d8f; /* Teal green */
+        }
+        .feedback-incorrect {
+            color: #e63946; /* Red */
+        }
+        .score-display {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #1d3557;
+        }
+        .animal-image {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin: 20px auto 0;
+        }
+        .game-over-message {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #e63946; /* Red */
+        }
+        .game-win-message {
+            color: #2a9d8f; /* Teal green */
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">¡Los Leones Sabios Practican! 🦁</h1>
+
+        <div id="animal-image-container">
+            <img id="animal-image" src="https://placehold.co/120x120/a8dadc/1d3557?text=🦁" alt="León" class="animal-image rounded-full">
+        </div>
+
+        <div id="question-area" class="question-area"></div>
+
+        <input type="number" id="answer-input" class="input-field" placeholder="Tu respuesta">
+
+        <button id="submit-button" class="action-button">Comprobar</button>
+        <button id="start-button" class="action-button mt-2">Empezar Juego</button>
+
+        <div id="feedback-message" class="feedback-message"></div>
+
+        <div id="score-display" class="score-display">Puntos: 0</div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const questionArea = document.getElementById('question-area');
+        const answerInput = document.getElementById('answer-input');
+        const submitButton = document.getElementById('submit-button');
+        const startButton = document.getElementById('start-button');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const scoreDisplay = document.getElementById('score-display');
+        const animalImage = document.getElementById('animal-image');
+
+        // Game state variables
+        let score = 0;
+        let currentQuestionCount = 0; // Tracks how many questions have been asked
+        let correctAnswer = 0;
+        let num1 = 0;
+        let num2 = 0;
+        const maxScore = 20;
+        const questionsPerGame = 4; // 4 questions * 5 points/question = 20 points
+
+        // Array of animal images for different feedback
+        const animalImages = {
+            neutral: "https://placehold.co/120x120/a8dadc/1d3557?text=🦁", // Lion neutral
+            correct: "https://placehold.co/120x120/2a9d8f/f1faee?text=🦁✨", // Happy Lion
+            incorrect: "https://placehold.co/120x120/e63946/f1faee?text=🦁❓", // Confused Lion
+            win: "https://placehold.co/120x120/457b9d/f1faee?text=🦁👑", // King Lion
+            lose: "https://placehold.co/120x120/1d3557/f1faee?text=🦁🤔" // Thinking Lion
+        };
+
+        /**
+         * Generates a new random multiplication question.
+         */
+        function generateQuestion() {
+            // Generate two random numbers between 1 and 10
+            num1 = Math.floor(Math.random() * 10) + 1;
+            num2 = Math.floor(Math.random() * 10) + 1;
+            correctAnswer = num1 * num2;
+
+            // Display the question
+            questionArea.textContent = `${num1} x ${num2} = ?`;
+            answerInput.value = ''; // Clear previous answer
+            answerInput.focus(); // Focus on the input field
+            feedbackMessage.textContent = ''; // Clear feedback
+            animalImage.src = animalImages.neutral; // Reset animal image
+        }
+
+        /**
+         * Checks the user's answer and updates the score and feedback.
+         */
+        function checkAnswer() {
+            const userAnswer = parseInt(answerInput.value);
+
+            // Validate input
+            if (isNaN(userAnswer)) {
+                feedbackMessage.textContent = 'Por favor, introduce un número.';
+                feedbackMessage.className = 'feedback-message feedback-incorrect';
+                return;
+            }
+
+            currentQuestionCount++; // Increment question count for every attempt
+
+            if (userAnswer === correctAnswer) {
+                feedbackMessage.textContent = '¡Correcto! 🎉';
+                feedbackMessage.className = 'feedback-message feedback-correct';
+                score += 5; // Add 5 points for correct answer
+                animalImage.src = animalImages.correct; // Change to correct animal
+            } else {
+                feedbackMessage.textContent = `¡Incorrecto! La respuesta era ${correctAnswer}. 😔`;
+                feedbackMessage.className = 'feedback-message feedback-incorrect';
+                animalImage.src = animalImages.incorrect; // Change to incorrect animal
+            }
+
+            scoreDisplay.textContent = `Puntos: ${score}`;
+
+            // Check if the game is over
+            if (currentQuestionCount >= questionsPerGame) {
+                endGame();
+            } else {
+                // If not game over, generate next question after a short delay
+                setTimeout(generateQuestion, 1500); // Wait 1.5 seconds before next question
+            }
+        }
+
+        /**
+         * Ends the game and displays the final result.
+         */
+        function endGame() {
+            submitButton.disabled = true;
+            answerInput.disabled = true;
+            startButton.textContent = 'Jugar de Nuevo';
+            startButton.style.display = 'block'; // Show restart button
+
+            if (score >= maxScore) {
+                questionArea.textContent = '¡Felicidades, León Sabio! ¡Has ganado!';
+                questionArea.className = 'question-area game-over-message game-win-message';
+                feedbackMessage.textContent = `¡Has acumulado ${score} puntos! Eres un campeón.`;
+                feedbackMessage.className = 'feedback-message feedback-correct';
+                animalImage.src = animalImages.win;
+            } else {
+                questionArea.textContent = 'Juego Terminado';
+                questionArea.className = 'question-area game-over-message';
+                feedbackMessage.textContent = `Has acumulado ${score} puntos, pequeño león. ¡Inténtalo de nuevo para llegar a 20!`;
+                feedbackMessage.className = 'feedback-message feedback-incorrect';
+                animalImage.src = animalImages.lose;
+            }
+        }
+
+        /**
+         * Resets the game state and starts a new game.
+         */
+        function resetGame() {
+            score = 0;
+            currentQuestionCount = 0;
+            scoreDisplay.textContent = 'Puntos: 0';
+            feedbackMessage.textContent = '';
+            questionArea.className = 'question-area'; // Reset classes
+            submitButton.disabled = false;
+            answerInput.disabled = false;
+            startButton.textContent = 'Empezar Juego';
+            startButton.style.display = 'none'; // Hide restart button until game over
+            generateQuestion();
+        }
+
+        // Event Listeners
+        submitButton.addEventListener('click', checkAnswer);
+        startButton.addEventListener('click', resetGame);
+        answerInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !submitButton.disabled) {
+                checkAnswer();
+            }
+        });
+
+        // Initial setup when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            resetGame(); // Start a new game immediately on load
+            startButton.style.display = 'none'; // Hide the start button initially
+        });
+    </script>
+</body>
+</html>
